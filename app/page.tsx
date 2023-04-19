@@ -8,6 +8,7 @@ import CharacterList from "./components/CharacterList";
 import LoadingList from "./components/LoadingList";
 import PagesButtons from "@/components/PagesButtons";
 import useDebounce from "@/hooks/useDebounce";
+import { Metadata } from "next";
 
 const initialFilter = {
   status: "",

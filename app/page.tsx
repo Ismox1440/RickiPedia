@@ -1,91 +1,106 @@
-import Image from 'next/image'
-import { Inter } from 'next/font/google'
-import styles from './page.module.css'
+"use client";
+import Balancer from "react-wrap-balancer";
+import { Button, Input, Pagination, Select, Text } from "@mantine/core";
+import { IconSearch } from "@tabler/icons-react";
+import { useEffect, useState } from "react";
+import useSWR from "swr";
+import CharacterList from "./components/CharacterList";
+import LoadingList from "./components/LoadingList";
+import PagesButtons from "@/components/PagesButtons";
+import useDebounce from "@/hooks/useDebounce";
 
-const inter = Inter({ subsets: ['latin'] })
+const initialFilter = {
+  status: "",
+  species: "",
+  gender: "",
+  page: 1,
+  search: "",
+};
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function Home() {
+  const [filterState, setFilterState] = useState(initialFilter);
+  const [totalPage, setTotalPage] = useState(0);
+  const debounceSearch = useDebounce(filterState.search);
+
+  const { data: characters, isLoading } = useSWR(
+    `https://rickandmortyapi.com/api/character/?name=${debounceSearch}&status=${filterState.status}&species=${filterState.species}&gender=${filterState.gender}&page=${filterState.page}`,
+    fetcher
+  );
+
+  const handleChange = (value: string | number, filter: string, page = 1) =>
+    setFilterState({ ...filterState, [filter]: value, page });
+
+  const handleReset = () => setFilterState(initialFilter);
+
+  useEffect(() => {
+    if (characters?.info?.pages) {
+      setTotalPage(characters.info.pages);
+    }
+  }, [characters]);
+
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>app/page.tsx</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
-
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
+    <main className="dark">
+      <div className="animate-slide-up">
+        <h1 className="py-2 gradient-heading mt-28 font-bold text-transparent bg-clip-text bg-gradient-to-b from-gray-200 to-gray-300 text-center text-5xl leading-[48px] tracking-[-0.6px] sm:text-6xl sm:leading-[64px]">
+          <Balancer>Rick And Morty</Balancer>
+        </h1>
+        <PagesButtons />
+        <Input
+          className="max-w-sm mx-auto mt-11"
+          icon={<IconSearch />}
+          placeholder="Search character"
+          radius="md"
+          onChange={(event) => handleChange(event.target.value, "search")}
+          value={filterState.search}
         />
-        <div className={styles.thirteen}>
-          <Image src="/thirteen.svg" alt="13" width={40} height={31} priority />
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mt-2">
+          <Select
+            className="max-w-sm"
+            placeholder="Status"
+            value={filterState.status}
+            onChange={(e: string) => handleChange(e, "status")}
+            data={["Alive", "Dead", "Unknown"]}
+          />
+          <Select
+            placeholder="Species"
+            value={filterState.species}
+            onChange={(e: string) => handleChange(e, "species")}
+            data={["Human", "Alien", "Robot", "Mythological Creature"]}
+          />
+          <Select
+            placeholder="Gender"
+            value={filterState.gender}
+            onChange={(e: string) => handleChange(e, "gender")}
+            data={["Male", "Female", "Genderless", "Unknown"]}
+          />
         </div>
-      </div>
+        <div className="flex items-center justify-center">
+          <Button className="mt-6" variant="default" onClick={handleReset}>
+            Reset
+          </Button>
+        </div>
+        <div className="flex items-center justify-center">
+          <Pagination
+            className="mx-auto mt-11"
+            value={filterState.page}
+            total={totalPage}
+            onChange={(pageNum) => handleChange(pageNum, "page", pageNum)}
+            disabled={isLoading}
+          />
+        </div>
 
-      <div className={styles.grid}>
-        <a
-          href="https://beta.nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={inter.className}>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p className={inter.className}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={inter.className}>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p className={inter.className}>Explore the Next.js 13 playground.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={inter.className}>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p className={inter.className}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
+        {characters?.results?.length > 0 ? (
+          <CharacterList characters={characters.results} />
+        ) : isLoading ? (
+          <LoadingList />
+        ) : (
+          <Text className="text-center mt-40 text-lg mx-auto">
+            No characters
+          </Text>
+        )}
       </div>
     </main>
-  )
+  );
 }

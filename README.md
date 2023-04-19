@@ -15,7 +15,7 @@ Rickipedia es una aplicación web que utiliza la API de Rick and Morty para perm
 
 - HTML
 - CSS
-- JavaScript
+- Typescript
 - Nextjs
 - Tailwind
 
